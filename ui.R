@@ -1,3 +1,20 @@
+library(shiny)
+library(RNeo4j)
+
+password = Sys.getenv("GRAPHENEDB_PASSWORD")
+url = Sys.getenv("GRAPHENEDB_URL")
+username = Sys.getenv("GRAPHENEDB_USERNAME")
+
+graph = startGraph(url = url,
+                   username = username,
+                   password = password)
+
+categories = getLabeledNodes(graph, "Category")
+categories = sapply(categories, function(c) c$name)
+
+terminals = getLabeledNodes(graph, "Terminal")
+terminals = sapply(terminals, function(t) t$name)
+
 shinyUI(fluidPage(
   titlePanel("DFW Food & Drink Finder"),
   sidebarLayout(
@@ -5,34 +22,18 @@ shinyUI(fluidPage(
       strong("Show me food & drink places in the following categories"),
       checkboxGroupInput("categories",
                          label = "",
-                         choices = list("American Cuisine" = "American Cuisine", 
-                                        "Asian" = "Asian", 
-                                        "Bar" = "Bar", 
-                                        "Barbecue" = "Barbecue", 
-                                        "Coffee" = "Coffee", 
-                                        "Desserts & Snacks" = "Desserts & Snacks", 
-                                        "Fast Food" = "Fast Food", 
-                                        "Grand Hyatt Dining" = "Grand Hyatt Dining", 
-                                        "Italian/Pizza" = "Italian/Pizza",
-                                        "Mexican/Southwest" = "Mexican/Southwest",
-                                        "Power Charging" = "Power Charging",
-                                        "Sandwich/Deli" = "Sandwich/Deli",
-                                        "Seafood" = "Seafood"),
-                         selected = c("Coffee", "Power Charging")),
+                         choices = categories,
+                         selected = sample(categories, 3)),
       strong("closest to gate"),
       numericInput("gate", 
                    label = "", 
-                   value = 10),
+                   value = sample(1:30, 1)),
       br(),
       strong("in terminal"),
       selectInput("terminal", 
                   label = "", 
-                  choices = list("A" = "A", 
-                                 "B" = "B",
-                                 "C" = "C",
-                                 "D" = "D",
-                                 "E" = "E"),
-                                 selected = "A"),
+                  choices = terminals,
+                  selected = sample(terminals, 1)),
       "Powered by", a("Neo4j", 
                       href = "http://www.neo4j.org/",
                       target = "_blank"), 

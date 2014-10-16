@@ -1,29 +1,28 @@
 library(RNeo4j)
 
 password = Sys.getenv("GRAPHENEDB_PASSWORD")
+url = Sys.getenv("GRAPHENEDB_URL")
+username = Sys.getenv("GRAPHENEDB_USERNAME")
 
-graph = startGraph("http://dfw.sb02.stations.graphenedb.com:24789/db/data/",
-                   username = "dfw",
+graph = startGraph(url = url,
+                   username = username,
                    password = password)
 
-query1 = "MATCH (c:Category)<-[:IN_CATEGORY]-(p:Place)-[:AT_GATE]->(g:Gate)-[:IN_TERMINAL]->(t:Terminal {name:{terminal}})"
-          
-query2 = "WITH c, p, g, t, g.gate - {gate} AS dist
-          ORDER BY ABS(dist)
-          RETURN p.name AS Name, c.name AS Category, g.gate AS Gate, t.name AS Terminal"
+query = "
+MATCH (p:Place)-[:IN_CATEGORY]->(c:Category),
+      (p)-[:AT_GATE]->(g:Gate),
+      (g)-[:IN_TERMINAL]->(t:Terminal)
+WHERE c.name IN {categories} AND t.name = {terminal}
+WITH c, p, g, t, ABS(g.gate - {gate}) AS dist
+ORDER BY dist
+RETURN p.name AS Name, c.name AS Category, g.gate AS Gate, t.name AS Terminal
+"
 
 shinyServer(function(input, output) {
   output$restaurants <- renderTable({
-    if(length(input$categories) > 1) {
-      query = paste(query1, "WHERE c.name IN {categories}", query2)
-    } else if(length(input$categories == 1)) {
-      query = paste(query1, "WHERE c.name = {categories}", query2)
-    } else {
-      query = paste(query1, query2)
-    }
     data = cypher(graph, 
                   query,
-                  categories = input$categories,
+                  categories = as.list(input$categories),
                   terminal = input$terminal,
                   gate = input$gate)
     if(is.null(data)){
